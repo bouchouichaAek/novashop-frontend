@@ -8,7 +8,8 @@
     "build": "vite build",
     "build:dev": "vite build --mode development",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preversion": "npm test",
+    "postversion": "git tag -d v%npm_package_version% 2>nul & git tag v%npm_package_version% & git push origin v%npm_package_version%"
   },
   "dependencies": {
     "@hookform/resolvers": "^3.10.0",

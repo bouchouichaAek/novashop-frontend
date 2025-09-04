@@ -8,7 +8,7 @@ pipeline {
     }
 
     stages {
-        def version = sh(script: "node -p 'require(\"./package.json\").version'", returnStdout: true).trim()
+        def version = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
         stage('Test Code') {
             steps {
                 script {
