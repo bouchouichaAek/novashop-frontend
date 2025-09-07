@@ -3,8 +3,7 @@ pipeline {
 
     environment {
         KUBECONFIG = "/var/lib/jenkins/.kube/config"
-        DOCKER_USERNAME =  credentials('DOCKER-USERNAME') // Replace with your Docker Hub username
-
+        DOCKER_USERNAME = credentials('DOCKER-USERNAME') // Replace with your Docker Hub username
     }
 
     stages {
@@ -12,36 +11,60 @@ pipeline {
             steps {
                 script {
                     // Test Code
-                    sh "testing ..."
+                    sh "echo 'Running tests...'"
+                    // Add your actual test commands here
+                    // sh "npm test"
                 }
             }
         }
+        
+        stage('Get Version') {
+            steps {
+                script {
+                    // Get version from package.json (adjust path if needed)
+                    def version = sh(script: "node -p \"require('./package.json').version\"", returnStdout: true).trim()
+                    env.SERVICE_VERSION = version
+                    echo "Application version: ${version}"
+                }
+            }
+        }
+        
         stage('Build and Push Docker Image') {
-            def version = sh(script: "node -p 'require(\"./services/${serviceName}/package.json\").version'", returnStdout: true).trim()
-
             steps {
-            // Build & Push Docker Image
-                withCredentials([usernamePassword(credentialsId: 'DOCKER', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-                    sh "echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin"
-                    sh "docker build -t $DOCKER_USERNAME/novashop-frontend:v${version} . "
-                    sh "docker push $DOCKER_USERNAME/novashop-frontend:v${version}"
+                script {
+                    // Build & Push Docker Image
+                    withCredentials([usernamePassword(credentialsId: 'DOCKER', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo $DOCKER_PASS | docker login -u $DOCKER_USER --password-stdin
+                            docker build -t $DOCKER_USERNAME/novashop-frontend:v${SERVICE_VERSION} .
+                            docker push $DOCKER_USERNAME/novashop-frontend:v${SERVICE_VERSION}
+                        '''
+                    }
                 }
             }
         }
+        
         stage('Deploy') {
-            def version = sh(script: "node -p 'require(\"./services/${serviceName}/package.json\").version'", returnStdout: true).trim()
-
             steps {
-                sh "kubectl set image deployment/novashop-frontend novashop-frontend=$DOCKER_USERNAME/novashop-frontend:v${version} --record"
-                sh "kubectl rollout status deployment/novashop-frontend || kubectl rollout undo deployment/novashop-frontend"
-
+                script {
+                    sh '''
+                        kubectl set image deployment/novashop-frontend novashop-frontend=$DOCKER_USERNAME/novashop-frontend:v${SERVICE_VERSION} --record
+                        kubectl rollout status deployment/novashop-frontend || kubectl rollout undo deployment/novashop-frontend
+                    '''
+                }
             }
         }
     }
+    
     post {
         always {
             cleanWs()
         }
+        success {
+            echo "Pipeline completed successfully!"
+        }
+        failure {
+            echo "Pipeline failed!"
+        }
     }
 }
-
