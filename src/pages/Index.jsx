@@ -65,7 +65,9 @@ const Index = () => {
           setProducts([]);
         }
       } catch (error) {
-        console.error("Error loading products:", error);
+        console.log(error);
+
+        // console.error("Error loading products:", error);
         setProducts([]); // Set empty array on error
       }
     };

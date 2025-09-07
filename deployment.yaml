@@ -1,0 +1,49 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: novashop-config
+  namespace: default
+data:
+  REACT_APP_BACKEND_URL: https://app-store.eastus.cloudapp.azure.com
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: novashop-frontend
+  namespace: default
+  labels:
+    app: novashop-frontend
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: novashop-frontend
+  template:
+    metadata:
+      labels:
+        app: novashop-frontend
+    spec:
+      containers:
+      - name: novashop-frontend
+        image: abdelkader97/novashop-frontend:v0.0.0
+        ports:
+        - containerPort: 80
+        envFrom:
+        - configMapRef:
+            name: novashop-config
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: novashop-frontend
+  namespace: default
+  labels:
+    app: novashop-frontend
+spec:
+  type: LoadBalancer
+  selector:
+    app: novashop-frontend
+  ports:
+  - protocol: TCP
+    port: 80
+    targetPort: 80
